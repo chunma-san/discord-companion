@@ -1,0 +1,13 @@
+bot.env
+.env
+bin
+obj
+*.json
+*.py
+README.md
+.git
+
+data/
+backups/
+
+research/
