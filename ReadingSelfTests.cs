@@ -6,6 +6,11 @@ public static class ReadingSelfTests
     private static void Check(bool ok, string name) { if (!ok) throw new Exception(name); Console.WriteLine("PASS " + name); }
     public static void Run()
     {
+        try { ReadingSites.Parse("<title>Bot Verification</title><form id='lsrecaptcha-form'></form>",new Uri("https://mangalik.net/"));throw new Exception("Verification page accepted"); }
+        catch(SourceVerificationException){Check(true,"Publisher verification pages identified without treating them as empty listings");}
+        var editorial=ReadingSites.Parse("<article><img src='/cover.gif'/><div class='kol-home-chapter-entry'><a href='/chapter-3/'>Series — Chapter 3</a></div><div class='kol-home-chapter-entry'><a href='https://example.com/trap'>Trap</a></div></article>",new Uri("https://kolnovel.com/"));
+        Check(editorial.Count==1 && editorial[0].CoverUrl=="https://kolnovel.com/cover.gif" && editorial[0].Title=="Series — Chapter 3","Kol editorial listings preserve covers and reject external links");
+
         var kol = ReadingSites.Parse("<div class='luf'><h3>Novel &amp; Title</h3><ul><li><a href='/chapter-2/'>Chapter 2</a></li><li><a href='https://evil.example/ch'>bad</a></li></ul></div>", new Uri("https://kolnovel.com/"));
         Check(kol.Count == 1 && kol[0].Title == "Novel & Title — Chapter 2", "Kolnovel title, chapter and same-site link");
         var olympus = ReadingSites.Parse("<div class='last-chapter'><div class='info'><h3>Series</h3><ul><li><a href='#' data-bs-toggle='modal'>Paid</a></li><li><a href='/series/name/2'>Chapter 2</a></li></ul></div></div>", new Uri("https://olympustaff.com/"));

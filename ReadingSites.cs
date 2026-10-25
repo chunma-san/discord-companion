@@ -9,12 +9,34 @@ public static class ReadingSites
 {
     private static string HasClass(string name) => $"contains(concat(' ',normalize-space(@class),' '),' {name} ')";
     private static string Text(HtmlNode? node) => Regex.Replace(HtmlEntity.DeEntitize(node?.InnerText ?? ""), @"\s+", " ").Trim();
+    private static List<ChapterEntry> ParseKolEditorial(HtmlNode root, Uri source)
+    {
+        var result = new List<ChapterEntry>();
+        foreach(var row in root.SelectNodes($"//div[{HasClass("kol-home-chapter-entry")}]")?.Take(500) ?? [])
+        {
+            var link=row.SelectSingleNode(".//a[@href]");
+            if(link is null || !Uri.TryCreate(source,HtmlEntity.DeEntitize(link.GetAttributeValue("href","")),out var url)
+                || url.Scheme!="https" || url.Host!=source.Host || url.UserInfo.Length>0)continue;
+            var title=Text(link);if(title.Length==0)continue;
+            var image=row.SelectSingleNode("ancestor::article[1]//img");
+            var raw=image?.GetAttributeValue("data-src",null) ?? image?.GetAttributeValue("src","");
+            string? cover=Uri.TryCreate(source,raw,out var coverUrl) && coverUrl.Scheme=="https" && coverUrl.Host==source.Host ? coverUrl.AbsoluteUri : null;
+            var key=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url.AbsoluteUri)));
+            result.Add(new(key,AnimeService.Trim(title,250),url.AbsoluteUri,null,cover));
+        }
+        if(result.Count==0)throw new ArgumentException("Kol Novel returned no public chapter listings; history preserved.");
+        return result.DistinctBy(e=>e.Key).Take(500).ToList();
+    }
     public static List<ChapterEntry> Parse(string html, Uri source)
     {
         var document = new HtmlDocument();
         document.LoadHtml(html);
         var root = document.DocumentNode;
+        if(root.SelectSingleNode("//form[@id='lsrecaptcha-form']") is not null)
+            throw new SourceVerificationException("Publisher requires browser verification; delivery history preserved.");
         var host = source.Host.ToLowerInvariant().Replace("www.", "");
+        if (host == "kolnovel.com" && root.SelectSingleNode($"//div[{HasClass("kol-home-chapter-entry")}]") is not null)
+            return ParseKolEditorial(root, source);
         string container, title, links;
         switch (host)
         {
@@ -68,6 +90,22 @@ public static class ReadingSites
 }
 public static class ReadingSetup
 {
+    public static async Task RefreshKolBaseline()
+    {
+        using var feeds=new ReadingFeeds();
+        var store=new ReadingStore(Environment.GetEnvironmentVariable("READING_DATA_DIR")??"/app/data");
+        foreach(var watch in store.Watches.Where(w=>new Uri(w.FeedUrl).Host=="kolnovel.com"))
+        {
+            var entries=await feeds.Fetch(watch.FeedUrl);
+            watch.Seen=watch.Seen.Concat(entries.Select(e=>e.Key)).Distinct().ToList();
+            watch.Latest=entries.Take(5).ToList();
+            watch.LastChecked=watch.LastSuccess=DateTimeOffset.UtcNow;
+            watch.Failures=0;watch.Error="";
+        }
+        store.Save();
+        Console.WriteLine("Kol Novel current entries recorded silently; prior delivery history retained.");
+    }
+
     public static readonly (string Name, ReadingKind Kind, string Url)[] Sources =
     [
         ("Kolnovel • Arabic novels", ReadingKind.Novel, "https://kolnovel.com/"),
@@ -93,3 +131,5 @@ public static class ReadingSetup
     }
 }
 
+
+public sealed class SourceVerificationException(string message) : Exception(message);

@@ -132,3 +132,9 @@ Third-party APIs, libraries and products remain the work of their respective mai
 - [chunma-san](https://github.com/chunma-san) — Project maintenance and development.
 
 Original contributors retain their authorship and license notices. See the repository history for individual contributions.
+
+## Kol Novel listings
+
+Chapter notifications support Kol Novel’s editorial chapter cards, including cover images and stable link-based deduplication. After migrating an installation with a long-failing Kol Novel subscription, stop its normal worker and run the image with `--reading-refresh-baseline` against the same writable data mount, using the existing data owner. This records current Kol Novel entries silently while retaining prior delivery history. Start the normal worker again afterward.
+
+Publisher verification pages are reported explicitly as source failures. Delivery history is retained, and normal checks retry later; the bot does not treat these pages as an empty successful listing.

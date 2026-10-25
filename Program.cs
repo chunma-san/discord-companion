@@ -14,6 +14,7 @@ if (args.Contains("--library-test")) { LibrarySelfTests.Run(); return; }
 if (args.Contains("--self-test")) { await SelfTests.Run(); return; }
 if (args.Contains("--api-test")) { await SelfTests.ApiTest(); return; }
 if (args.Contains("--host-test")) { await SelfTests.HostTest(); return; }
+if (args.Contains("--reading-refresh-baseline")) { await ReadingSetup.RefreshKolBaseline(); return; }
 if (args.Contains("--reading-api-test")) { await ReadingSetup.Inspect(); return; }
 if (args.Contains("--reading-bootstrap")) { await ReadingSetup.Bootstrap(); return; }
 if (args.Contains("--reading-preview")) { using var chapters = new ChapterService(BotSettings.FromEnvironment()); await chapters.Preview(); return; }
