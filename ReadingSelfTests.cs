@@ -8,6 +8,8 @@ public static class ReadingSelfTests
     {
         try { ReadingSites.Parse("<title>Bot Verification</title><form id='lsrecaptcha-form'></form>",new Uri("https://mangalik.net/"));throw new Exception("Verification page accepted"); }
         catch(SourceVerificationException){Check(true,"Publisher verification pages identified without treating them as empty listings");}
+        var cenele=ReadingSites.Parse("<article class='nhv-nrRow'><img src='/cover.webp'/><a class='nhv-nrTitle'>Test novel</a><a class='nhv-chapBtn' href='/cont/test/chapter-2/'><span class='nhv-chapBtn__left'>Chapter 2</span><span class='nhv-chapBtn__time'>10 minutes ago</span></a><a class='nhv-chapBtn' href='https://example.com/cont/trap'><span class='nhv-chapBtn__left'>Trap</span></a></article>",new Uri("https://cenele.com/"));
+        Check(cenele.Count==1 && cenele[0].Title=="Test novel — Chapter 2" && cenele[0].CoverUrl=="https://cenele.com/cover.webp","Cenele chapter links and covers exclude relative timestamps and external links");
         var editorial=ReadingSites.Parse("<article><img src='/cover.gif'/><div class='kol-home-chapter-entry'><a href='/chapter-3/'>Series — Chapter 3</a></div><div class='kol-home-chapter-entry'><a href='https://example.com/trap'>Trap</a></div></article>",new Uri("https://kolnovel.com/"));
         Check(editorial.Count==1 && editorial[0].CoverUrl=="https://kolnovel.com/cover.gif" && editorial[0].Title=="Series — Chapter 3","Kol editorial listings preserve covers and reject external links");
 

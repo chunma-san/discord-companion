@@ -138,3 +138,5 @@ Original contributors retain their authorship and license notices. See the repos
 Chapter notifications support Kol Novel’s editorial chapter cards, including cover images and stable link-based deduplication. After migrating an installation with a long-failing Kol Novel subscription, stop its normal worker and run the image with `--reading-refresh-baseline` against the same writable data mount, using the existing data owner. This records current Kol Novel entries silently while retaining prior delivery history. Start the normal worker again afterward.
 
 Publisher verification pages are reported explicitly as source failures. Delivery history is retained, and normal checks retry later; the bot does not treat these pages as an empty successful listing.
+
+Cenele notifications support current release rows and cover metadata. Bootstrap with `--cenele-bootstrap` while the regular worker is stopped. Use `--notification-test-all` to explicitly post one TEST preview per configured source without altering delivery history. Configure the four game destination channel IDs shown in the example environment file.

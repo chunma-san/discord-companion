@@ -9,6 +9,26 @@ public static class ReadingSites
 {
     private static string HasClass(string name) => $"contains(concat(' ',normalize-space(@class),' '),' {name} ')";
     private static string Text(HtmlNode? node) => Regex.Replace(HtmlEntity.DeEntitize(node?.InnerText ?? ""), @"\s+", " ").Trim();
+    private static List<ChapterEntry> ParseCenele(HtmlNode root, Uri source)
+    {
+        var entries=new List<ChapterEntry>();
+        foreach(var row in root.SelectNodes($"//article[{HasClass("nhv-nrRow")}]")?.Take(200) ?? [])
+        {
+            var title=Text(row.SelectSingleNode($".//a[{HasClass("nhv-nrTitle")}]"));
+            var raw=row.SelectSingleNode(".//img")?.GetAttributeValue("src","");
+            string? cover=Uri.TryCreate(source,raw,out var image) && image.Scheme=="https" && image.Host==source.Host ? image.AbsoluteUri : null;
+            foreach(var link in row.SelectNodes($".//a[{HasClass("nhv-chapBtn")}]" )?.Take(10) ?? [])
+            {
+                if(!Uri.TryCreate(source,HtmlEntity.DeEntitize(link.GetAttributeValue("href","")),out var url) || url.Scheme!="https" || url.Host!=source.Host || url.UserInfo.Length>0 || !url.AbsolutePath.StartsWith("/cont/"))continue;
+                var chapter=Text(link.SelectSingleNode($".//span[{HasClass("nhv-chapBtn__left")}]"));
+                if(title.Length==0 || chapter.Length==0)continue;
+                var key=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url.AbsoluteUri)));
+                entries.Add(new(key,AnimeService.Trim(title+" — "+chapter,250),url.AbsoluteUri,null,cover));
+            }
+        }
+        if(entries.Count==0)throw new ArgumentException("Cenele returned no public chapter listings; history preserved.");
+        return entries.DistinctBy(e=>e.Key).ToList();
+    }
     private static List<ChapterEntry> ParseKolEditorial(HtmlNode root, Uri source)
     {
         var result = new List<ChapterEntry>();
@@ -35,6 +55,7 @@ public static class ReadingSites
         if(root.SelectSingleNode("//form[@id='lsrecaptcha-form']") is not null)
             throw new SourceVerificationException("Publisher requires browser verification; delivery history preserved.");
         var host = source.Host.ToLowerInvariant().Replace("www.", "");
+        if(host=="cenele.com")return ParseCenele(root,source);
         if (host == "kolnovel.com" && root.SelectSingleNode($"//div[{HasClass("kol-home-chapter-entry")}]") is not null)
             return ParseKolEditorial(root, source);
         string container, title, links;

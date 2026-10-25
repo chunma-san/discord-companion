@@ -20,6 +20,8 @@ if (args.Contains("--reading-bootstrap")) { await ReadingSetup.Bootstrap(); retu
 if (args.Contains("--reading-preview")) { using var chapters = new ChapterService(BotSettings.FromEnvironment()); await chapters.Preview(); return; }
 if (args.Contains("--grapheneos-test")) { using var news = new GrapheneNews(BotSettings.FromEnvironment()); await news.Test(); return; }
 if (args.Contains("--grapheneos-setup")) { using var news = new GrapheneNews(BotSettings.FromEnvironment()); await news.Setup(); return; }
+if(args.Contains("--cenele-bootstrap")){using var service=new ChapterService(BotSettings.FromEnvironment());try{await service.Add("Cenele • روايات عربية",ReadingKind.Novel,"https://cenele.com/",null);}catch(ArgumentException e)when(e.Message=="This source and filter are already tracked."){}return;}
+if(args.Contains("--notification-test-all")){var testSettings=BotSettings.FromEnvironment();await NotificationPreview.SendReading(testSettings);using var gameTests=new GameUpdates(testSettings);await gameTests.TestAll();return;}
 var builder = Host.CreateApplicationBuilder(args);
 var settings = BotSettings.FromEnvironment();
 settings.Validate();
@@ -33,6 +35,7 @@ builder.Services.AddHttpClient<AnimeService>(client => {
 builder.Services.AddSingleton<HostService>();
 builder.Services.AddSingleton<GrapheneNews>();
 builder.Services.AddHostedService(p => p.GetRequiredService<GrapheneNews>());
+builder.Services.AddHostedService<GameUpdates>();
 builder.Services.AddSingleton<ChapterService>();
 builder.Services.AddHostedService(p => p.GetRequiredService<ChapterService>());
 builder.Services.AddDiscordGateway(options => options.Intents = GatewayIntents.Guilds)
