@@ -140,3 +140,5 @@ Chapter notifications support Kol Novel’s editorial chapter cards, including c
 Publisher verification pages are reported explicitly as source failures. Delivery history is retained, and normal checks retry later; the bot does not treat these pages as an empty successful listing.
 
 Cenele notifications support current release rows and cover metadata. Bootstrap with `--cenele-bootstrap` while the regular worker is stopped. Use `--notification-test-all` to explicitly post one TEST preview per configured source without altering delivery history. Configure the four game destination channel IDs shown in the example environment file.
+
+Rewayat Club notifications use its public weekly chapter listing API, ordered by publication time, with publisher-hosted covers and stable chapter links. Run `--rewayat-bootstrap` with the normal worker stopped to subscribe without reposting existing chapters.

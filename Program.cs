@@ -10,6 +10,7 @@ using NetCord.Services.ComponentInteractions;
 using NetCord.Services.ApplicationCommands;
 using NetCord;
 
+if(args.Contains("--rewayat-inspect")){using var feeds=new ReadingFeeds();var entries=await feeds.Fetch("https://rewayat.club/");Console.WriteLine($"Rewayat Club: {entries.Count} recent chapter records; covers={entries.Count(e=>e.CoverUrl is not null)}");return;}
 if (args.Contains("--library-test")) { LibrarySelfTests.Run(); return; }
 if (args.Contains("--self-test")) { await SelfTests.Run(); return; }
 if (args.Contains("--api-test")) { await SelfTests.ApiTest(); return; }
@@ -20,6 +21,7 @@ if (args.Contains("--reading-bootstrap")) { await ReadingSetup.Bootstrap(); retu
 if (args.Contains("--reading-preview")) { using var chapters = new ChapterService(BotSettings.FromEnvironment()); await chapters.Preview(); return; }
 if (args.Contains("--grapheneos-test")) { using var news = new GrapheneNews(BotSettings.FromEnvironment()); await news.Test(); return; }
 if (args.Contains("--grapheneos-setup")) { using var news = new GrapheneNews(BotSettings.FromEnvironment()); await news.Setup(); return; }
+if(args.Contains("--rewayat-bootstrap")){using var service=new ChapterService(BotSettings.FromEnvironment());try{await service.Add("Rewayat Club • نادي الروايات",ReadingKind.Novel,"https://rewayat.club/",null);}catch(ArgumentException e)when(e.Message=="This source and filter are already tracked."){}return;}
 if(args.Contains("--cenele-bootstrap")){using var service=new ChapterService(BotSettings.FromEnvironment());try{await service.Add("Cenele • روايات عربية",ReadingKind.Novel,"https://cenele.com/",null);}catch(ArgumentException e)when(e.Message=="This source and filter are already tracked."){}return;}
 if(args.Contains("--notification-test-all")){var testSettings=BotSettings.FromEnvironment();await NotificationPreview.SendReading(testSettings);using var gameTests=new GameUpdates(testSettings);await gameTests.TestAll();return;}
 var builder = Host.CreateApplicationBuilder(args);

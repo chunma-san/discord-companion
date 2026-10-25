@@ -1,3 +1,4 @@
+using System.Text.Json;
 using HtmlAgilityPack;
 using System.Security.Cryptography;
 using System.Text;
@@ -46,6 +47,24 @@ public static class ReadingSites
         }
         if(result.Count==0)throw new ArgumentException("Kol Novel returned no public chapter listings; history preserved.");
         return result.DistinctBy(e=>e.Key).Take(500).ToList();
+    }
+    public static List<ChapterEntry> ParseRewayatClub(string json)
+    {
+        using var data=JsonDocument.Parse(json);var entries=new List<ChapterEntry>();
+        foreach(var row in data.RootElement.GetProperty("results").EnumerateArray().Take(100))
+        {
+            var novel=row.GetProperty("novel");var slug=novel.GetProperty("slug").GetString()??"";var number=row.GetProperty("number").ToString();
+            if(!Regex.IsMatch(slug,@"^[A-Za-z0-9-]+$") || !Regex.IsMatch(number,@"^\d+(?:\.\d+)?$"))continue;
+            var name=novel.GetProperty("arabic").GetString()??"";var title=row.GetProperty("title").GetString()??"";if(string.IsNullOrWhiteSpace(name))continue;
+            var url="https://rewayat.club/novel/"+slug+"/"+number;
+            var key=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url)));
+            string? cover=null;
+            if(novel.TryGetProperty("poster_url",out var poster) && Uri.TryCreate(poster.GetString(),UriKind.Absolute,out var image) && image.Scheme=="https" && image.UserInfo.Length==0 && image.IsDefaultPort && (image.Host=="media.rewayat.club" || image.Host=="api.rewayat.club"))cover=image.AbsoluteUri;
+            DateTimeOffset? date=row.TryGetProperty("date",out var published) && DateTimeOffset.TryParse(published.GetString(),out var parsed)?parsed:null;
+            entries.Add(new(key,AnimeService.Trim(name+" — "+(title.Length>0?title:"Chapter "+number),250),url,date,cover));
+        }
+        if(entries.Count==0)throw new ArgumentException("Rewayat Club returned no chapter metadata; history preserved.");
+        return entries.OrderByDescending(e=>e.Published).DistinctBy(e=>e.Key).ToList();
     }
     public static List<ChapterEntry> Parse(string html, Uri source)
     {

@@ -110,9 +110,13 @@ public sealed class ReadingFeeds : IDisposable
     public async Task<List<ChapterEntry>> Fetch(string url, CancellationToken cancellation = default)
     {
         var uri = SourceUri(url);
+        var rewayat=uri.Host is "rewayat.club" or "www.rewayat.club";
+        if(rewayat){if(uri.AbsolutePath!="/")throw new ArgumentException("Use the Rewayat Club homepage for latest chapters.");uri=SourceUri("https://rewayat.club/api/chapters/weekly/list/?page=1");}
         for (var redirects = 0; redirects < 5; redirects++)
         {
-            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellation);
+            using var request=new HttpRequestMessage(HttpMethod.Get,uri);
+            if(rewayat)request.Headers.Accept.ParseAdd("application/json");
+            using var response=await http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,cancellation);
             if ((int)response.StatusCode is >= 300 and < 400 && response.Headers.Location is { } location)
             {
                 uri = SourceUri(new Uri(uri, location).AbsoluteUri);
@@ -128,6 +132,11 @@ public sealed class ReadingFeeds : IDisposable
             {
                 if (buffer.Length + count > 2_000_000) throw new ArgumentException("Feed exceeds the supported size.");
                 buffer.Write(block, 0, count);
+            }
+            if(rewayat)
+            {
+                if(uri.Host is not ("rewayat.club" or "api.rewayat.club"))throw new ArgumentException("Unexpected Rewayat Club API redirect.");
+                return ReadingSites.ParseRewayatClub(Encoding.UTF8.GetString(buffer.ToArray()));
             }
             return response.Content.Headers.ContentType?.MediaType == "text/html"
                 ? ReadingSites.Parse(Encoding.UTF8.GetString(buffer.ToArray()), uri)
