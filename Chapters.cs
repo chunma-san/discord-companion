@@ -60,6 +60,9 @@ public sealed class ReadingFeeds : IDisposable
         {
             AllowAutoRedirect = false,
             AutomaticDecompression = DecompressionMethods.All,
+            UseCookies = false,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+            ConnectTimeout = TimeSpan.FromSeconds(8),
             ConnectCallback = async (context, cancellation) =>
             {
                 var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellation);
@@ -70,9 +73,12 @@ public sealed class ReadingFeeds : IDisposable
                     var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                     try
                     {
-                        await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellation);
+                        using var attempt = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+                        attempt.CancelAfter(TimeSpan.FromSeconds(3));
+                        await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), attempt.Token);
                         return new NetworkStream(socket, ownsSocket: true);
                     }
+                    catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { socket.Dispose(); throw; }
                     catch { socket.Dispose(); }
                 }
                 throw new HttpRequestException("Source could not be reached.");

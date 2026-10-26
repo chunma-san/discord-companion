@@ -31,7 +31,7 @@ public sealed class GameUpdates : BackgroundService
         new("DODI", "https://dodi-repacks.site/", ConfiguredChannel("DODI_CHANNEL_ID")),
         new("FitGirl", "https://fitgirl-repacks.site/", ConfiguredChannel("FITGIRL_CHANNEL_ID")),
         new("SteamRIP", "https://steamrip.com/", ConfiguredChannel("STEAMRIP_CHANNEL_ID"))];
-    private readonly HttpClient http = new(new HttpClientHandler { AllowAutoRedirect = false, AutomaticDecompression = DecompressionMethods.All }) { Timeout = TimeSpan.FromSeconds(30) };
+    private readonly HttpClient http = new(new SocketsHttpHandler { AllowAutoRedirect = false, AutomaticDecompression = DecompressionMethods.All, UseCookies = false, PooledConnectionLifetime = TimeSpan.FromMinutes(5), ConnectTimeout = TimeSpan.FromSeconds(8) }) { Timeout = TimeSpan.FromSeconds(30) };
     private readonly HttpClient discord = new() { BaseAddress = new Uri("https://discord.com/api/v10/"), Timeout = TimeSpan.FromSeconds(30) };
     private readonly BotSettings settings;
     private readonly string path;
